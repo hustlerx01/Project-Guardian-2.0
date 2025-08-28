@@ -27,7 +27,7 @@ The solution:
 
 ---
 
-## 🛠️ Requirements
+##  Requirements
 - Python **3.8+**
 - Standard libraries only (`json`, `csv`, `re`)
 
