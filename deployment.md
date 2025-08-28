@@ -1,4 +1,5 @@
-# Project Guardian 2.0 – Deployment Strategy
+# Project Guardian 2.0 
+# Deployment Strategy
 
 ## Overview
 The PII Detector & Redactor is designed to identify and mask sensitive information (PII) in real-time data streams. The goal is to prevent unauthorized access or leakage of customer details that could lead to fraud.
