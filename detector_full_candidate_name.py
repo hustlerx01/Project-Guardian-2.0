@@ -123,7 +123,7 @@ def find_pii(record: Dict[str, Any]) -> Dict[str, bool]:
 
 def main(input_file):
     """Main execution block."""
-    output_file = "redacted_output.csv"
+    output_file = "redacted_output_candidate_full_name.csv"
     print(f"Processing '{input_file}'...")
 
     try:
