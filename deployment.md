@@ -1,35 +1,36 @@
-# Deployment strategy writer
+# Project Guardian 2.0 – Deployment Strategy
 
-DEPLOYMENT_MD = """# Project Guardian 2.0 — Deployment Strategy (Real‑time PII Defense)
+## Overview
+The PII Detector & Redactor is designed to identify and mask sensitive information (PII) in real-time data streams. The goal is to prevent unauthorized access or leakage of customer details that could lead to fraud.
 
-## Goals
-- Stop PII at the **perimeter**, before it reaches logs, traces, and data lakes.
-- **Low latency** (<10 ms typical per JSON payload) and **linear scalability**.
-- **Defense in depth:** ingress gateway + sidecar log filter + async backstop.
+## Deployment Location
+The solution should be deployed as a **Sidecar container** next to services that process incoming/outgoing data streams (e.g., API Gateway, Ingress Controller).  
 
-## Recommended Placement
-1. **L7 API Gateway plugin (primary):** Envoy WASM or NGINX Lua filter streams
-   request/response bodies to a **local sidecar** over a Unix domain socket.
-2. **Sidecar Daemon** next to workloads: sanitizes application logs (stdout/file)
-   before shipping via Fluent Bit/Vector.
-3. **Kafka backstop**: re‑sanitize streams headed to the data lake.
+- **Why Sidecar?**
+  - **Low latency:** Redaction happens locally, no external network calls.
+  - **Scalability:** Each pod/service can have its own PII filter.
+  - **Ease of integration:** Can be dropped in without rewriting the main app.
+  - **Security:** Prevents raw PII from leaving the service boundary.
 
-## Why here?
-- **Scales** with pods (no central choke point).
-- **Fast** local call; stream‑based, no full buffering.
-- **Zero app changes**; canary rollout with shadow mode.
+## Alternative Deployment Options
+- **DaemonSet (Node Level):** Runs on every node to inspect logs and network traffic. Good for infra-level visibility, but higher latency.
+- **API Gateway Plugin:** Centralized filtering at the ingress point. Works well for SaaS APIs but could become a bottleneck at scale.
+- **Internal Tool Plugin:** Useful for compliance dashboards or developer logs but not sufficient for real-time defense.
 
-## Policy Mapping (matches this script)
-- **Standalone PII:** phone(10d), Aadhaar(12d), Passport([A-Z]\\d{7}), UPI(user@psp) → always redact.
-- **Combinatorial PII:** any two of {full name, email, physical address (address OR city+pin), device_id/IP} → redact only when ≥2 occur.
+## Recommended Approach
+1. **Ingress Traffic:** Deploy as an **API Gateway plugin** (e.g., NGINX Lua plugin or Envoy filter) to sanitize PII before data enters backend systems.
+2. **Service-Level:** Run as a **Sidecar container** for microservices that store/process logs, ensuring no raw PII is persisted.
+3. **Asynchronous Monitoring:** Use a **DaemonSet** to scan historical logs and ensure compliance (non-blocking).
 
-## Modes
-- **Shadow** (detect only) → **Mask** (default) → **Block** (sensitive write routes).
-- Per‑route fail‑open/closed; Prometheus metrics.
+## Deployment Workflow
+1. Incoming request → API Gateway plugin intercepts → Redacts PII → Forwards clean payload.  
+2. Microservices process sanitized data.  
+3. DaemonSet periodically scans logs/storage for PII leaks.  
 
-## Ops
-- Timeouts and backpressure; token buckets for surge.
-- Idempotent masking; no storage of raw PII.
-- CI gate: regression F1 ≥ 0.95 on synthetic datasets.
+## Benefits
+- **Latency:** Regex/NER-based detection runs in microseconds per record.  
+- **Scalability:** Horizontal scaling with microservices.  
+- **Cost-effectiveness:** No extra infra beyond lightweight sidecars.  
+- **Compliance:** Ensures GDPR/DPDP compliance by preventing PII exposure.
 
-"""
+---
